@@ -9,7 +9,7 @@ import { Select } from '../components/ui/Input';
 import EmptyState from '../components/ui/EmptyState';
 import { useReportStore } from '../store/reportStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { generateMonthlyPDF } from '../components/pdf/generatePDF';
+import { generateMonthlyPDF, generateMonthlyTablePDF } from '../components/pdf/generatePDF';
 import { getMonthName, formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
@@ -32,6 +32,7 @@ export default function PrintMonthly() {
   const [month, setMonth] = useState(String(new Date().getMonth()));
   const [year, setYear] = useState(String(currentYear));
   const [generating, setGenerating] = useState(false);
+  const [generatingTable, setGeneratingTable] = useState(false);
 
   const reports = useMemo(
     () => getReportsByMonth(parseInt(month), parseInt(year)),
@@ -42,12 +43,25 @@ export default function PrintMonthly() {
     setGenerating(true);
     try {
       await generateMonthlyPDF(reports, parseInt(month), parseInt(year), profile, printSettings);
-      toast.success('PDF berhasil di-generate!');
+      toast.success('Laporan Lengkap PDF berhasil di-generate!');
     } catch (err) {
       console.error(err);
-      toast.error('Gagal generate PDF');
+      toast.error('Gagal generate Laporan Lengkap PDF');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleGenerateTable = async () => {
+    setGeneratingTable(true);
+    try {
+      await generateMonthlyTablePDF(reports, parseInt(month), parseInt(year), profile, printSettings);
+      toast.success('Tabel Kegiatan PDF berhasil di-generate!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal generate Tabel Kegiatan PDF');
+    } finally {
+      setGeneratingTable(false);
     }
   };
 
@@ -96,19 +110,30 @@ export default function PrintMonthly() {
 
           {/* Preview */}
           <Card>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <h3 className="text-base font-semibold text-text-primary dark:text-dark-text-primary">
                 Preview Kegiatan
               </h3>
-              <Button
-                variant="gold"
-                icon={<FileDown size={16} />}
-                onClick={handleGenerate}
-                loading={generating}
-                disabled={reports.length === 0}
-              >
-                Generate PDF
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  icon={<FileDown size={16} />}
+                  onClick={handleGenerateTable}
+                  loading={generatingTable}
+                  disabled={reports.length === 0}
+                >
+                  Cetak Tabel Ringkasan
+                </Button>
+                <Button
+                  variant="gold"
+                  icon={<FileDown size={16} />}
+                  onClick={handleGenerate}
+                  loading={generating}
+                  disabled={reports.length === 0}
+                >
+                  Cetak Laporan Lengkap
+                </Button>
+              </div>
             </div>
 
             {reports.length === 0 ? (

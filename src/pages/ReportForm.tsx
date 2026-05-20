@@ -10,6 +10,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { Textarea } from '../components/ui/Input';
 import PhotoUpload from '../components/forms/PhotoUpload';
+import type { PhotoItem } from '../components/forms/PhotoUpload';
 import { useReportStore } from '../store/reportStore';
 import { savePhoto, getPhotosByReport, deletePhotosByReport, generateId } from '../services/storage';
 import toast from 'react-hot-toast';
@@ -30,7 +31,7 @@ export default function ReportForm() {
   const { addReport, updateReport, getReport } = useReportStore();
   const isEdit = !!id;
 
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -63,7 +64,7 @@ export default function ReportForm() {
         });
         // Load photos from IndexedDB
         getPhotosByReport(id).then((photoData) => {
-          setPhotos(photoData.map((p) => p.data));
+          setPhotos(photoData.map((p) => ({ data: p.data, name: p.name })));
           setLoaded(true);
         });
       } else {
@@ -75,33 +76,7 @@ export default function ReportForm() {
     }
   }, [id, isEdit, getReport, reset, navigate]);
 
-  // Auto-save draft
-  const watchedValues = watch();
-  useEffect(() => {
-    if (!isEdit && loaded && (watchedValues.title || watchedValues.description)) {
-      const draft = { ...watchedValues, photos };
-      localStorage.setItem('lapkin-draft', JSON.stringify(draft));
-    }
-  }, [watchedValues, photos, isEdit, loaded]);
 
-  // Restore draft
-  useEffect(() => {
-    if (!isEdit) {
-      const draftStr = localStorage.getItem('lapkin-draft');
-      if (draftStr) {
-        try {
-          const draft = JSON.parse(draftStr);
-          reset({
-            title: draft.title || '',
-            date: draft.date || new Date().toISOString().split('T')[0],
-            location: draft.location || '',
-            description: draft.description || '',
-          });
-          if (draft.photos) setPhotos(draft.photos);
-        } catch {}
-      }
-    }
-  }, [isEdit, reset]);
 
   const onSubmit = async (data: ReportFormData) => {
     setSaving(true);
@@ -111,14 +86,14 @@ export default function ReportForm() {
       if (isEdit && id) {
         // Delete old photos, save new
         await deletePhotosByReport(id);
-        for (const photoData of photos) {
+        for (const photoItem of photos) {
           const photoId = generateId();
           await savePhoto({
             id: photoId,
             reportId: id,
-            data: photoData,
-            name: `photo_${photoId}`,
-            size: photoData.length,
+            data: photoItem.data,
+            name: photoItem.name || '',
+            size: photoItem.data.length,
             createdAt: new Date().toISOString(),
           });
           photoIds.push(photoId);
@@ -134,20 +109,19 @@ export default function ReportForm() {
           date: data.date,
         });
         // Save photos
-        for (const photoData of photos) {
+        for (const photoItem of photos) {
           const photoId = generateId();
           await savePhoto({
             id: photoId,
             reportId,
-            data: photoData,
-            name: `photo_${photoId}`,
-            size: photoData.length,
+            data: photoItem.data,
+            name: photoItem.name || '',
+            size: photoItem.data.length,
             createdAt: new Date().toISOString(),
           });
           photoIds.push(photoId);
         }
         updateReport(reportId, { photoIds });
-        localStorage.removeItem('lapkin-draft');
         toast.success('Laporan berhasil disimpan');
       }
       navigate('/reports');

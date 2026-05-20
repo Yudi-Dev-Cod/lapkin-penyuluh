@@ -3,9 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, Camera, ImagePlus } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 
+export interface PhotoItem {
+  data: string; // base64 string
+  name: string; // caption/filename
+}
+
 interface PhotoUploadProps {
-  photos: string[]; // base64 strings
-  onChange: (photos: string[]) => void;
+  photos: PhotoItem[];
+  onChange: (photos: PhotoItem[]) => void;
   maxPhotos?: number;
 }
 
@@ -40,7 +45,11 @@ export default function PhotoUpload({ photos, onChange, maxPhotos = 10 }: PhotoU
     setCompressing(true);
     try {
       const results = await Promise.all(toProcess.map(compressAndConvert));
-      onChange([...photos, ...results]);
+      const newItems: PhotoItem[] = results.map((data) => ({
+        data,
+        name: '', // default to empty string so placeholder is shown
+      }));
+      onChange([...photos, ...newItems]);
     } catch (err) {
       console.error('Error compressing images:', err);
     } finally {
@@ -63,6 +72,12 @@ export default function PhotoUpload({ photos, onChange, maxPhotos = 10 }: PhotoU
 
   const removePhoto = (index: number) => {
     onChange(photos.filter((_, i) => i !== index));
+  };
+
+  const updatePhotoName = (index: number, newName: string) => {
+    const updated = [...photos];
+    updated[index] = { ...updated[index], name: newName };
+    onChange(updated);
   };
 
   return (
@@ -137,29 +152,43 @@ export default function PhotoUpload({ photos, onChange, maxPhotos = 10 }: PhotoU
 
       <AnimatePresence mode="popLayout">
         {photos.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {photos.map((photo, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="relative group aspect-square rounded-xl overflow-hidden border border-border dark:border-dark-border"
+                className="flex flex-col rounded-xl border border-border dark:border-dark-border bg-surface dark:bg-dark-surface overflow-hidden shadow-sm hover:shadow-md transition-shadow"
               >
-                <img
-                  src={photo}
-                  alt={`Foto ${i + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(i)}
-                  className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                >
-                  <X size={14} />
-                </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {i + 1}
+                {/* Photo container */}
+                <div className="relative aspect-video w-full bg-surface-secondary dark:bg-dark-surface-secondary">
+                  <img
+                    src={photo.data}
+                    alt={`Foto ${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors shadow-lg"
+                  >
+                    <X size={14} />
+                  </button>
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/55 text-white text-[10px] font-medium">
+                    Foto {i + 1}
+                  </div>
+                </div>
+
+                {/* Caption input */}
+                <div className="p-2 bg-surface-tertiary dark:bg-dark-surface-tertiary border-t border-border dark:border-dark-border">
+                  <input
+                    type="text"
+                    placeholder="Tulis keterangan foto..."
+                    value={photo.name}
+                    onChange={(e) => updatePhotoName(i, e.target.value)}
+                    className="w-full px-2 py-1 text-xs rounded border border-border dark:border-dark-border bg-surface dark:bg-dark-surface text-text-primary dark:text-dark-text-primary focus:outline-none focus:border-gold transition-colors"
+                  />
                 </div>
               </motion.div>
             ))}

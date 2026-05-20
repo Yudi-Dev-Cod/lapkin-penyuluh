@@ -59,22 +59,12 @@ export default function Reports() {
         title="Laporan Kegiatan"
         subtitle={`${reports.length} total laporan`}
         onMenuClick={openSidebar}
-        actions={
-          <Button
-            variant="gold"
-            size="sm"
-            icon={<Plus size={14} />}
-            onClick={() => navigate('/reports/new')}
-          >
-            <span className="hidden sm:inline">Tambah</span>
-          </Button>
-        }
       />
 
       <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6">
-        {/* Filters */}
+        {/* Filters and Add Action */}
         <Card>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col md:flex-row gap-3 md:items-center">
             <div className="flex-1">
               <Input
                 placeholder="Cari kegiatan, lokasi, deskripsi..."
@@ -86,7 +76,7 @@ export default function Reports() {
                 }}
               />
             </div>
-            <div className="w-full sm:w-48">
+            <div className="w-full md:w-48">
               <Select
                 options={MONTHS}
                 value={selectedMonth}
@@ -96,6 +86,14 @@ export default function Reports() {
                 }}
               />
             </div>
+            <Button
+              variant="gold"
+              icon={<Plus size={16} />}
+              onClick={() => navigate('/reports/new')}
+              className="w-full md:w-auto h-10 px-5 shrink-0"
+            >
+              Tambah Laporan
+            </Button>
           </div>
         </Card>
 

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "lapkin-penyuluh",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.lapkin.penyuluh",
   "build": {
     "frontendDist": "../dist",

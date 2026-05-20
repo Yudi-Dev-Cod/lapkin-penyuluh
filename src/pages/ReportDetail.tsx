@@ -11,6 +11,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { getPhotosByReport } from '../services/storage';
 import { generateSinglePDF } from '../components/pdf/generatePDF';
 import { formatDate } from '../utils/helpers';
+import type { PhotoData } from '../types';
 import toast from 'react-hot-toast';
 
 export default function ReportDetail() {
@@ -20,7 +21,7 @@ export default function ReportDetail() {
   const { getReport, deleteReport } = useReportStore();
   const { profile, printSettings } = useSettingsStore();
 
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -30,7 +31,7 @@ export default function ReportDetail() {
   useEffect(() => {
     if (id) {
       getPhotosByReport(id).then((data) => {
-        setPhotos(data.map((p) => p.data));
+        setPhotos(data);
       });
     }
   }, [id]);
@@ -157,7 +158,7 @@ export default function ReportDetail() {
                   Galeri Foto ({photos.length})
                 </h3>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {photos.map((photo, i) => (
                   <motion.div
                     key={i}
@@ -165,9 +166,18 @@ export default function ReportDetail() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.05 }}
                     onClick={() => setLightboxIndex(i)}
-                    className="aspect-square rounded-xl overflow-hidden border border-border dark:border-dark-border cursor-pointer hover:shadow-lg transition-shadow"
+                    className="group flex flex-col rounded-xl overflow-hidden border border-border dark:border-dark-border cursor-pointer hover:shadow-lg transition-all duration-300 bg-surface dark:bg-dark-surface"
                   >
-                    <img src={photo} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                    <div className="aspect-square relative overflow-hidden bg-surface-secondary dark:bg-dark-surface-secondary">
+                      <img src={photo.data} alt={photo.name || `Foto ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+                    {(photo.name && !photo.name.startsWith('photo_')) && (
+                      <div className="p-2 border-t border-border dark:border-dark-border bg-surface-tertiary dark:bg-dark-surface-tertiary">
+                        <p className="text-xs text-text-secondary dark:text-dark-text-secondary line-clamp-1 italic text-center">
+                          {photo.name}
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </div>
@@ -212,13 +222,16 @@ export default function ReportDetail() {
               key={lightboxIndex}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              src={photos[lightboxIndex]}
-              alt=""
+              src={photos[lightboxIndex].data}
+              alt={photos[lightboxIndex].name || ""}
               className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
-            <div className="absolute bottom-6 text-white/60 text-sm">
-              {lightboxIndex + 1} / {photos.length}
+            <div className="absolute bottom-6 text-center text-white/80 text-sm max-w-[80vw] flex flex-col gap-1 items-center">
+              {(photos[lightboxIndex].name && !photos[lightboxIndex].name.startsWith('photo_')) && (
+                <p className="italic text-base mb-1">{photos[lightboxIndex].name}</p>
+              )}
+              <span className="text-xs opacity-75">{lightboxIndex + 1} / {photos.length}</span>
             </div>
           </motion.div>
         )}

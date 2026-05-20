@@ -13,7 +13,7 @@ import { ConfirmModal } from '../components/ui/Modal';
 import { useSettingsStore } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
 import { useReportStore } from '../store/reportStore';
-import { clearAllPhotos } from '../services/storage';
+import { clearAllPhotos, getAllPhotos, savePhoto } from '../services/storage';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 
@@ -125,7 +125,8 @@ export default function Settings() {
     input.click();
   };
 
-  const handleBackup = () => {
+  const handleBackup = async () => {
+    const photos = await getAllPhotos();
     const data = {
       settings: {
         profile: settings.profile,
@@ -133,6 +134,7 @@ export default function Settings() {
         darkMode: settings.darkMode,
       },
       reports: reportStore.reports,
+      photos: photos,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -148,13 +150,19 @@ export default function Settings() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const data = JSON.parse(reader.result as string);
         if (data.settings) {
           settings.importData(JSON.stringify(data.settings));
           setProfileForm(data.settings.profile || settings.profile);
           setPrintForm(data.settings.printSettings || settings.printSettings);
+        }
+        if (data.photos && Array.isArray(data.photos)) {
+          await clearAllPhotos();
+          for (const photo of data.photos) {
+            await savePhoto(photo);
+          }
         }
         if (data.reports && Array.isArray(data.reports)) {
           localStorage.setItem('lapkin-reports', JSON.stringify({ state: { reports: data.reports }, version: 0 }));
@@ -575,7 +583,7 @@ export default function Settings() {
                       />
                     </div>
                     <p className="text-xs text-text-muted dark:text-dark-text-muted">
-                      💡 Backup mencakup semua data laporan dan pengaturan (tidak termasuk foto).
+                      💡 Backup mencakup semua data laporan, pengaturan, dan foto.
                     </p>
                   </div>
                 </Card>
