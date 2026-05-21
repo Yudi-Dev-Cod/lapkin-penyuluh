@@ -73,6 +73,45 @@ function drawDynamicSectionHeader(
   return barHeight + barHeightSpacing;
 }
 
+// Helper function to draw Kop Surat (Letterhead)
+function drawKopSurat(
+  doc: jsPDF,
+  printSettings: PrintSettings,
+  pageWidth: number,
+  margin: number,
+  yStart: number
+): number {
+  let y = yStart;
+  if (printSettings.logo) {
+    try {
+      doc.addImage(printSettings.logo, 'AUTO', margin, y, 18, 18);
+    } catch (e) {
+      // logo not available
+    }
+  }
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+
+  printSettings.kopSurat.forEach((line, i) => {
+    doc.setFontSize(i === 0 ? 13 : 11);
+    doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
+    doc.text(line, pageWidth / 2, y + 4 + i * 6, { align: 'center' });
+  });
+
+  y += printSettings.kopSurat.length * 6 + 8;
+
+  // Garis KOP
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.8);
+  doc.line(margin, y, pageWidth - margin, y);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+  y += 10;
+
+  return y;
+}
+
 // Helper function to draw a metadata table row
 function drawTableRow(
   doc: jsPDF,
@@ -133,31 +172,7 @@ export async function generateMonthlyPDF(
   let y = margin;
 
   // ===== KOP SURAT =====
-  if (printSettings.logo) {
-    try {
-      doc.addImage(printSettings.logo, 'AUTO', margin, y, 18, 18);
-    } catch (e) {
-      // logo not available
-    }
-  }
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-
-  printSettings.kopSurat.forEach((line, i) => {
-    doc.setFontSize(i === 0 ? 13 : 11);
-    doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-    doc.text(line, pageWidth / 2, y + 4 + i * 6, { align: 'center' });
-  });
-
-  y += printSettings.kopSurat.length * 6 + 8;
-
-  // Garis KOP
-  doc.setLineWidth(0.8);
-  doc.line(margin, y, pageWidth - margin, y);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
-  y += 10;
+  y = drawKopSurat(doc, printSettings, pageWidth, margin, y);
 
   // ===== JUDUL =====
   doc.setFontSize(13);
@@ -180,7 +195,7 @@ export async function generateMonthlyPDF(
     // Each activity starts on a new page, except the first one which starts on page 1.
     if (index > 0) {
       doc.addPage();
-      y = margin;
+      y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
     }
 
     const col1Width = 45;
@@ -220,7 +235,7 @@ export async function generateMonthlyPDF(
 
     if (y + totalDescHeight > pageHeight - 35) {
       doc.addPage();
-      y = margin;
+      y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
     }
 
     const drawnHeaderHeight = drawDynamicSectionHeader(doc, 'KETERANGAN / DESKRIPSI', 'document', margin, y, contentWidth);
@@ -253,7 +268,7 @@ export async function generateMonthlyPDF(
 
       if (y + barHeight + spacing + cardHeight > pageHeight - 35) {
         doc.addPage();
-        y = margin;
+        y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
       }
 
       const drawnPhotoHeaderHeight = drawDynamicSectionHeader(doc, 'DOKUMENTASI KEGIATAN', 'camera', margin, y, contentWidth);
@@ -262,7 +277,7 @@ export async function generateMonthlyPDF(
       for (let i = 0; i < photoData.length; i += 3) {
         if (y + cardHeight > pageHeight - 35) {
           doc.addPage();
-          y = margin;
+          y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
         }
 
         for (let col = 0; col < 3; col++) {
@@ -402,25 +417,7 @@ export async function generateSinglePDF(
   let y = margin;
 
   // ===== KOP SURAT =====
-  if (printSettings.logo) {
-    try {
-      doc.addImage(printSettings.logo, 'AUTO', margin, y, 18, 18);
-    } catch (e) { }
-  }
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  printSettings.kopSurat.forEach((line, i) => {
-    doc.setFontSize(i === 0 ? 13 : 11);
-    doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-    doc.text(line, pageWidth / 2, y + 4 + i * 6, { align: 'center' });
-  });
-  y += printSettings.kopSurat.length * 6 + 8;
-  doc.setLineWidth(0.8);
-  doc.line(margin, y, pageWidth - margin, y);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
-  y += 10;
+  y = drawKopSurat(doc, printSettings, pageWidth, margin, y);
 
   // ===== METADATA TABLE =====
   const col1Width = 45;
@@ -459,7 +456,7 @@ export async function generateSinglePDF(
 
   if (y + totalDescHeight > pageHeight - 35) {
     doc.addPage();
-    y = margin;
+    y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
   }
 
   // Draw header using our helper
@@ -494,7 +491,7 @@ export async function generateSinglePDF(
 
     if (y + barHeight + spacing + cardHeight > pageHeight - 35) {
       doc.addPage();
-      y = margin;
+      y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
     }
 
     // Draw header using helper
@@ -504,7 +501,7 @@ export async function generateSinglePDF(
     for (let i = 0; i < photoData.length; i += 3) {
       if (y + cardHeight > pageHeight - 35) {
         doc.addPage();
-        y = margin;
+        y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
       }
 
       for (let col = 0; col < 3; col++) {
@@ -592,28 +589,7 @@ export async function generateMonthlyTablePDF(
   let y = margin;
 
   // ===== KOP SURAT =====
-  if (printSettings.logo) {
-    try {
-      doc.addImage(printSettings.logo, 'AUTO', margin, y, 18, 18);
-    } catch (e) { }
-  }
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  printSettings.kopSurat.forEach((line, i) => {
-    doc.setFontSize(i === 0 ? 13 : 11);
-    doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-    doc.text(line, pageWidth / 2, y + 4 + i * 6, { align: 'center' });
-  });
-
-  y += printSettings.kopSurat.length * 6 + 8;
-
-  // Garis KOP
-  doc.setLineWidth(0.8);
-  doc.line(margin, y, pageWidth - margin, y);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
-  y += 10;
+  y = drawKopSurat(doc, printSettings, pageWidth, margin, y);
 
   // ===== JUDUL =====
   doc.setFontSize(13);
@@ -668,7 +644,7 @@ export async function generateMonthlyTablePDF(
     // Check page break
     if (y + rowHeight > pageHeight - 35) {
       doc.addPage();
-      y = margin;
+      y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
 
       // Draw header row on new page
       doc.setFillColor(11, 46, 89);
@@ -741,7 +717,7 @@ export async function generateMonthlyTablePDF(
   // ===== TANDA TANGAN =====
   if (y + 60 > pageHeight - margin) {
     doc.addPage();
-    y = margin;
+    y = drawKopSurat(doc, printSettings, pageWidth, margin, margin);
   }
 
   y += 10;
